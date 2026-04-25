@@ -1,0 +1,14 @@
+ALTER TABLE album
+    ALTER COLUMN id TYPE BIGINT;
+
+ALTER SEQUENCE IF EXISTS album_id_seq
+    AS BIGINT;
+
+ALTER TABLE album
+    ALTER COLUMN artist_id SET NOT NULL;
+
+ALTER TABLE album
+    ADD COLUMN IF NOT EXISTS manually_edited BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE INDEX IF NOT EXISTS idx_artist_name ON artist (name);
+CREATE INDEX IF NOT EXISTS idx_album_title ON album (title);

@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: music
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tidal
+    username: user
+    password: user
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+
+  flyway:
+    enabled: true
+
+tidal:
+  client-id: ${TIDAL_CLIENT_ID:}
+  client-secret: ${TIDAL_CLIENT_SECRET:}
+  country-code: ${TIDAL_COUNTRY_CODE:DE}
