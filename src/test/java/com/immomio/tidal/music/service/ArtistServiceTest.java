@@ -1,7 +1,6 @@
 package com.immomio.tidal.music.service;
 
 import com.immomio.tidal.music.dto.ArtistRequest;
-import com.immomio.tidal.music.dto.ArtistDto;
 import com.immomio.tidal.music.dto.TidalArtistResponse;
 import com.immomio.tidal.music.entity.Artist;
 import com.immomio.tidal.music.repositories.ArtistRepository;

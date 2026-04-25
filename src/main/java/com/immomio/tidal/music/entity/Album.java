@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.Data;
 
 /**
  * Entity representing an Album in the music database.
@@ -16,6 +17,7 @@ import jakarta.persistence.Table;
  */
 @Entity
 @Table(name = "album")
+@Data
 public class Album {
 
     @Id
@@ -54,82 +56,4 @@ public class Album {
         this.artist = artist;
     }
 
-    /**
-     * Gets the album's ID.
-     *
-     * @return the ID
-     */
-    public Long getId() {
-        return id;
-    }
-
-    /**
-     * Gets the album's title.
-     *
-     * @return the title
-     */
-    public String getTitle() {
-        return title;
-    }
-
-    /**
-     * Gets the TIDAL external ID.
-     *
-     * @return the external ID
-     */
-    public String getExternalId() {
-        return externalId;
-    }
-
-    /**
-     * Checks if the album has been manually edited.
-     *
-     * @return true if manually edited
-     */
-    public boolean isManuallyEdited() {
-        return manuallyEdited;
-    }
-
-    /**
-     * Gets the associated artist.
-     *
-     * @return the artist
-     */
-    public Artist getArtist() {
-        return artist;
-    }
-
-    /**
-     * Updates the album's title.
-     *
-     * @param title the new title
-     */
-    public void updateTitle(String title) {
-        this.title = title;
-    }
-
-    /**
-     * Updates the TIDAL external ID.
-     *
-     * @param externalId the new external ID
-     */
-    public void updateExternalId(String externalId) {
-        this.externalId = externalId;
-    }
-
-    /**
-     * Updates the associated artist.
-     *
-     * @param artist the new artist
-     */
-    public void updateArtist(Artist artist) {
-        this.artist = artist;
-    }
-
-    /**
-     * Marks the album as manually edited to prevent sync overwrites.
-     */
-    public void markAsEdited() {
-        this.manuallyEdited = true;
-    }
 }
