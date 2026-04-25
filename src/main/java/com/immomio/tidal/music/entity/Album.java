@@ -56,4 +56,37 @@ public class Album {
         this.artist = artist;
     }
 
+    /**
+     * Updates the album's title.
+     *
+     * @param title the new title
+     */
+    public void updateTitle(String title) {
+        this.title = title;
+    }
+
+    /**
+     * Updates the TIDAL external ID.
+     *
+     * @param externalId the new external ID
+     */
+    public void updateExternalId(String externalId) {
+        this.externalId = externalId;
+    }
+
+    /**
+     * Updates the associated artist.
+     *
+     * @param artist the new artist
+     */
+    public void updateArtist(Artist artist) {
+        this.artist = artist;
+    }
+
+    /**
+     * Marks the album as manually edited to prevent sync overwrites.
+     */
+    public void markAsEdited() {
+        this.manuallyEdited = true;
+    }
 }

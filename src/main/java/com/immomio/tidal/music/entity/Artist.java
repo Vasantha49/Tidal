@@ -55,4 +55,36 @@ public class Artist {
         this.name = name;
         this.externalId = externalId;
     }
+
+    /**
+     * Updates the artist's name.
+     *
+     * @param name the new name
+     */
+    public void updateName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * Updates the TIDAL external ID.
+     *
+     * @param externalId the new external ID
+     */
+    public void updateExternalId(String externalId) {
+        this.externalId = externalId;
+    }
+
+    /**
+     * Marks the artist as manually edited to prevent sync overwrites.
+     */
+    public void markAsEdited() {
+        this.manuallyEdited = true;
+    }
+
+    /**
+     * Clears the manually edited flag.
+     */
+    public void clearEditedFlag() {
+        this.manuallyEdited = false;
+    }
 }
