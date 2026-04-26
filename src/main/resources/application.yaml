@@ -25,3 +25,5 @@ tidal:
   client-id: ${TIDAL_CLIENT_ID:}
   client-secret: ${TIDAL_CLIENT_SECRET:}
   country-code: ${TIDAL_COUNTRY_CODE:DE}
+  oauth2:
+    redirect-uri: ${TIDAL_OAUTH2_REDIRECT_URI:http://localhost:8080/oauth2/callback}
