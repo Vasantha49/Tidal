@@ -2,7 +2,11 @@ package com.immomio.tidal.music.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -12,11 +16,6 @@ import java.util.Map;
 
 /**
  * Service for managing TIDAL OAuth2 Authorization Code Flow with PKCE.
- * Implements RFC 7636 Proof Key for Public Clients for enhanced security.
- *
- * This enables end-user authentication and access to user-specific TIDAL data.
- *
- * Related documentation: https://developer.tidal.com/documentation/api-sdk/api-sdk-authorization
  */
 @Service
 public class TidalAuthorizationCodeService {
@@ -27,9 +26,10 @@ public class TidalAuthorizationCodeService {
     private static final String TIDAL_TOKEN_ENDPOINT = "https://auth.tidal.com/v1/oauth2/token";
     private static final int CODE_VERIFIER_LENGTH = 128;
 
+    private final RestTemplate restTemplate = new RestTemplate();
+
     /**
-     * Represents a PKCE challenge for secure authorization code flow.
-     * Stores both the verifier (kept on client) and challenge (sent to server).
+     * PKCE challenge pair.
      */
     public static class PKCEChallenge {
         public final String verifier;
@@ -44,7 +44,7 @@ public class TidalAuthorizationCodeService {
     }
 
     /**
-     * Represents an authorization session with saved state for security.
+     * Authorization session stored in memory.
      */
     public static class AuthorizationSession {
         public final String state;
@@ -53,8 +53,8 @@ public class TidalAuthorizationCodeService {
         public final String redirectUri;
         public final long createdAt;
 
-        public AuthorizationSession(String state, PKCEChallenge pkceChallenge, 
-                                   String clientId, String redirectUri) {
+        public AuthorizationSession(String state, PKCEChallenge pkceChallenge,
+                                    String clientId, String redirectUri) {
             this.state = state;
             this.pkceChallenge = pkceChallenge;
             this.clientId = clientId;
@@ -62,161 +62,107 @@ public class TidalAuthorizationCodeService {
             this.createdAt = System.currentTimeMillis();
         }
 
-        /**
-         * Check if session is still valid (not expired after 10 minutes).
-         */
         public boolean isValid() {
-            long ageMillis = System.currentTimeMillis() - createdAt;
-            long maxAgeMillis = 10 * 60 * 1000; // 10 minutes
-            return ageMillis < maxAgeMillis;
+            return (System.currentTimeMillis() - createdAt) < (10 * 60 * 1000);
         }
     }
 
-    /**
-     * In-memory store for authorization sessions.
-     * In production, use Redis or database.
-     */
     private final Map<String, AuthorizationSession> authorizationSessions = new HashMap<>();
 
-    /**
-     * Generates a PKCE challenge pair.
-     * Implements SHA256 method as recommended.
-     *
-     * @return PKCEChallenge with verifier and challenge
-     */
+    // ---------------- PKCE + STATE ----------------
+
     public PKCEChallenge generatePKCEChallenge() {
         try {
-            // Generate random code verifier (128 characters)
             String verifier = generateRandomString(CODE_VERIFIER_LENGTH);
 
-            // Create SHA256 challenge from verifier
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] bytes = digest.digest(verifier.getBytes());
             String challenge = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
 
-            log.debug("Generated PKCE challenge pair");
             return new PKCEChallenge(verifier, challenge, "S256");
         } catch (Exception ex) {
-            log.error("Failed to generate PKCE challenge", ex);
             throw new RuntimeException("Failed to generate PKCE challenge", ex);
         }
     }
 
-    /**
-     * Generates a random state parameter for CSRF protection.
-     *
-     * @return random state string
-     */
     public String generateState() {
         return generateRandomString(32);
     }
 
-    /**
-     * Builds the authorization URL for user browser redirect.
-     *
-     * @param clientId the TIDAL client ID
-     * @param redirectUri the callback URI after user authorizes
-     * @param scopes requested scopes (space-separated)
-     * @param pkceChallenge the PKCE challenge
-     * @param state CSRF protection state
-     * @return complete authorization URL
-     */
-    public String buildAuthorizationUrl(String clientId, String redirectUri, 
-                                       String scopes, PKCEChallenge pkceChallenge, String state) {
-        StringBuilder url = new StringBuilder(TIDAL_AUTH_ENDPOINT);
-        url.append("?response_type=code");
-        url.append("&client_id=").append(urlEncode(clientId));
-        url.append("&redirect_uri=").append(urlEncode(redirectUri));
-        url.append("&scope=").append(urlEncode(scopes));
-        url.append("&code_challenge=").append(urlEncode(pkceChallenge.challenge));
-        url.append("&code_challenge_method=").append(pkceChallenge.method);
-        url.append("&state=").append(urlEncode(state));
+    // ---------------- AUTHORIZATION URL ----------------
 
-        log.info("Built authorization URL for user login");
-        return url.toString();
+    public String buildAuthorizationUrl(String clientId, String redirectUri,
+                                        String scopes, PKCEChallenge pkceChallenge, String state) {
+
+        return TIDAL_AUTH_ENDPOINT +
+                "?response_type=code" +
+                "&client_id=" + urlEncode(clientId) +
+                "&redirect_uri=" + urlEncode(redirectUri) +
+                "&scope=" + urlEncode(scopes) +
+                "&code_challenge=" + urlEncode(pkceChallenge.challenge) +
+                "&code_challenge_method=" + pkceChallenge.method +
+                "&state=" + urlEncode(state);
     }
 
-    /**
-     * Saves an authorization session for state validation during callback.
-     *
-     * @param session the authorization session
-     */
+    // ---------------- SESSION STORE ----------------
+
     public void saveAuthorizationSession(AuthorizationSession session) {
         authorizationSessions.put(session.state, session);
-        log.debug("Saved authorization session for state: {}", session.state);
     }
 
-    /**
-     * Retrieves and validates a saved authorization session.
-     *
-     * @param state the state parameter
-     * @return the session if valid and found
-     */
     public AuthorizationSession getAuthorizationSession(String state) {
         AuthorizationSession session = authorizationSessions.get(state);
-        if (session == null) {
-            log.warn("Authorization session not found for state: {}", state);
-            return null;
-        }
-        if (!session.isValid()) {
-            log.warn("Authorization session expired for state: {}", state);
+        if (session == null || !session.isValid()) {
             authorizationSessions.remove(state);
             return null;
         }
         return session;
     }
 
-    /**
-     * Removes a session after successful use.
-     *
-     * @param state the state parameter
-     */
     public void removeAuthorizationSession(String state) {
         authorizationSessions.remove(state);
-        log.debug("Removed authorization session for state: {}", state);
     }
 
-    /**
-     * Builds the token request body for exchanging code for tokens.
-     *
-     * @param clientId the client ID
-     * @param code the authorization code from redirect
-     * @param redirectUri the redirect URI (must match original)
-     * @param codeVerifier the PKCE code verifier
-     * @return request body as map
-     */
-    public Map<String, String> buildTokenRequestBody(String clientId, String code, 
-                                                     String redirectUri, String codeVerifier) {
-        Map<String, String> body = new HashMap<>();
-        body.put("grant_type", "authorization_code");
-        body.put("client_id", clientId);
-        body.put("code", code);
-        body.put("redirect_uri", redirectUri);
-        body.put("code_verifier", codeVerifier);
-        return body;
+    // ---------------- TOKEN EXCHANGE ----------------
+
+    public Map<String, Object> exchangeAuthorizationCodeForTokens(
+            String clientId,
+            String code,
+            String redirectUri,
+            String codeVerifier
+    ) {
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("grant_type", "authorization_code");
+        form.add("client_id", clientId);
+        form.add("code", code);
+        form.add("redirect_uri", redirectUri);
+        form.add("code_verifier", codeVerifier);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        HttpEntity<MultiValueMap<String, String>> request =
+                new HttpEntity<>(form, headers);
+
+        ResponseEntity<Map> response = restTemplate.postForEntity(
+                TIDAL_TOKEN_ENDPOINT,
+                request,
+                Map.class
+        );
+
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            throw new RuntimeException("Token exchange failed: " + response.getStatusCode());
+        }
+
+        return response.getBody();
     }
 
-    /**
-     * Builds the refresh token request body.
-     *
-     * @param clientId the client ID
-     * @param refreshToken the refresh token
-     * @return request body as map
-     */
-    public Map<String, String> buildRefreshTokenRequestBody(String clientId, String refreshToken) {
-        Map<String, String> body = new HashMap<>();
-        body.put("grant_type", "refresh_token");
-        body.put("client_id", clientId);
-        body.put("refresh_token", refreshToken);
-        return body;
+    public String getTokenEndpoint() {
+        return TIDAL_TOKEN_ENDPOINT;
     }
 
-    /**
-     * Generates a cryptographically secure random string.
-     *
-     * @param length the desired length
-     * @return random string
-     */
+    // ---------------- HELPERS ----------------
+
     private String generateRandomString(int length) {
         SecureRandom random = new SecureRandom();
         byte[] bytes = new byte[length];
@@ -225,28 +171,11 @@ public class TidalAuthorizationCodeService {
                 .substring(0, length);
     }
 
-    /**
-     * URL encodes a string for use in query parameters.
-     *
-     * @param value the value to encode
-     * @return encoded value
-     */
     private String urlEncode(String value) {
         try {
             return java.net.URLEncoder.encode(value, "UTF-8");
         } catch (Exception ex) {
-            log.error("Failed to URL encode value", ex);
             return value;
         }
     }
-
-    /**
-     * Returns the token endpoint URL.
-     *
-     * @return TIDAL token endpoint
-     */
-    public String getTokenEndpoint() {
-        return TIDAL_TOKEN_ENDPOINT;
-    }
 }
-
