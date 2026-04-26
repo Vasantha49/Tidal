@@ -50,12 +50,25 @@ public class SyncController {
     }
 
     /**
-     * Seeds the database with top artists from TIDAL.
-     * Supports both GET and POST for convenience.
+     * Seeds the database with top artists from TIDAL using GET (for browser testing).
      */
     @GetMapping("/seed")
+    public void seedArtistsGet() {
+        seedArtistsInternal();
+    }
+
+    /**
+     * Seeds the database with top artists from TIDAL using POST (for API clients).
+     */
     @PostMapping("/seed")
-    public void seedArtists() {
+    public void seedArtistsPost() {
+        seedArtistsInternal();
+    }
+
+    /**
+     * Internal method to seed the database with top artists from TIDAL.
+     */
+    private void seedArtistsInternal() {
         syncService.seedArtists();
     }
 }

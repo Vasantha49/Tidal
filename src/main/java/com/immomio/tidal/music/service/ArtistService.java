@@ -2,6 +2,7 @@ package com.immomio.tidal.music.service;
 
 import com.immomio.tidal.music.dto.ArtistDto;
 import com.immomio.tidal.music.dto.ArtistRequest;
+import com.immomio.tidal.music.dto.TidalSearchResponse;
 import com.immomio.tidal.music.entity.Artist;
 import com.immomio.tidal.music.repositories.ArtistRepository;
 import org.springframework.http.HttpStatus;
@@ -124,6 +125,18 @@ public class ArtistService {
                                 artistRepository.save(artist);
                             }
                         }));
+    }
+
+    /**
+     * Searches TIDAL for artists.
+     *
+     * @param query the search query
+     * @param limit the maximum number of results
+     * @return TIDAL search response
+     */
+    @Transactional(readOnly = true)
+    public TidalSearchResponse searchTidal(String query, int limit) {
+        return tidalService.search(query, limit);
     }
 
     /**

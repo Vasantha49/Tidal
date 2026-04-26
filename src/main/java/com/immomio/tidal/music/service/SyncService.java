@@ -83,6 +83,15 @@ public class SyncService {
     public void seedArtists() {
         log.info("Starting artist seeding process");
         
+        // Clear existing sample data first
+        log.info("Clearing existing sample artists");
+        artistRepository.findAll().forEach(artist -> {
+            if (artist.getExternalId() != null && artist.getExternalId().startsWith("sample-artist-")) {
+                artistRepository.delete(artist);
+                log.info("Deleted sample artist: {}", artist.getName());
+            }
+        });
+
         // Try to fetch from TIDAL first
         if (tidalService.hasCredentials()) {
             List<TidalArtistResponse> topArtists = tidalService.fetchTopArtists(10);

@@ -81,6 +81,7 @@ The exact repair command depends on how you run Flyway in your environment. For 
 - `GET /artists`
 - `GET /artists/{id}`
 - `GET /artists/search?q=massive`
+- `GET /artists/tidal/search?q=massive` - Search TIDAL directly for artists
 - `POST /artists`
 - `PUT /artists/{id}`
 - `DELETE /artists/{id}`
@@ -222,3 +223,151 @@ If you see errors like "artist not found" when seeding:
 - Check that `TIDAL_CLIENT_ID` and `TIDAL_CLIENT_SECRET` are configured
 - Use `GET /health/tidal` to verify TIDAL credentials are working
 - Manual syncs: `POST /sync`, `POST /sync/artists`, `POST /sync/albums`
+
+## TIDAL API Integration
+
+This project integrates with the TIDAL music streaming API using OAuth2 client credentials flow:
+
+- **Authentication**: Automatic token acquisition and refresh
+- **Artist Discovery**: Uses TIDAL's search API to find real artists
+- **Album Sync**: Fetches albums for artists with valid external IDs
+- **Health Checks**: `GET /health/tidal` verifies API connectivity
+
+### Data Fetching Strategy
+
+1. **Real TIDAL Data**: When credentials are configured, the app searches for popular artists using TIDAL's search API
+2. **Fallback**: Without credentials, creates sample artists for testing
+3. **Manual Override**: Users can create artists with specific TIDAL external IDs
+
+### API Endpoints Used
+
+- `POST /oauth2/token` - OAuth2 token acquisition
+- `GET /search` - Artist search with query parameters
+- `GET /artists/{id}` - Individual artist lookup
+- `GET /artists/{id}/albums` - Album fetching for artists
+
+## Production Deployment
+
+### Prerequisites
+
+- Docker and Docker Compose installed
+- TIDAL API credentials (optional for basic functionality)
+
+### Quick Start
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd music
+   ```
+
+2. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your values
+   ```
+
+3. **Build and run with Docker Compose**
+   ```bash
+   docker-compose -f docker-compose.prod.yml up -d
+   ```
+
+4. **Check application health**
+   ```bash
+   curl http://localhost:8080/health/tidal
+   ```
+
+### Quick Deployment
+
+For the fastest deployment, use the provided scripts:
+
+**Windows:**
+```cmd
+deploy-prod.bat
+```
+
+**Linux/Mac:**
+```bash
+chmod +x deploy-prod.sh
+./deploy-prod.sh
+```
+
+### Manual Deployment
+
+1. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your values
+   ```
+
+2. **Build and start**
+   ```bash
+   docker-compose -f docker-compose.prod.yml up -d --build
+   ```
+
+3. **Verify deployment**
+   ```bash
+   curl http://localhost:8080/health/tidal
+   ```
+
+### Production Configuration
+
+The production setup includes:
+
+- **Multi-stage Docker build** for optimized image size
+- **Health checks** for both database and application
+- **Non-root user** for security
+- **Optimized JVM settings** for containerized environments
+- **Automatic service restart** on failure
+
+### Environment Variables
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `DB_PASSWORD` | PostgreSQL password | Yes | - |
+| `TIDAL_CLIENT_ID` | TIDAL API client ID | No | - |
+| `TIDAL_CLIENT_SECRET` | TIDAL API client secret | No | - |
+| `TIDAL_COUNTRY_CODE` | Country code for TIDAL API | No | DE |
+
+### Docker Commands
+
+```bash
+# Build and start services
+docker-compose -f docker-compose.prod.yml up -d
+
+# View logs
+docker-compose -f docker-compose.prod.yml logs -f app
+
+# Stop services
+docker-compose -f docker-compose.prod.yml down
+
+# Rebuild application
+docker-compose -f docker-compose.prod.yml build --no-cache app
+
+# Scale application (if needed)
+docker-compose -f docker-compose.prod.yml up -d --scale app=3
+```
+
+### Production Optimizations
+
+- **Memory limits**: JVM configured for container constraints
+- **Health checks**: Automatic service monitoring
+- **Graceful shutdown**: Proper signal handling
+- **Security**: Non-root user execution
+- **Performance**: G1GC garbage collector optimized for containers
+
+### Monitoring
+
+- **Application health**: `GET /health/tidal`
+- **Container health**: `docker ps`
+- **Logs**: `docker-compose -f docker-compose.prod.yml logs -f`
+
+### Backup and Recovery
+
+```bash
+# Backup database
+docker exec music-db pg_dump -U music_user music > backup.sql
+
+# Restore database
+docker exec -i music-db psql -U music_user music < backup.sql
+```

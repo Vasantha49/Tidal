@@ -2,6 +2,8 @@ package com.immomio.tidal.music.controller;
 
 import com.immomio.tidal.music.dto.ArtistDto;
 import com.immomio.tidal.music.dto.ArtistRequest;
+import com.immomio.tidal.music.dto.TidalArtistResponse;
+import com.immomio.tidal.music.dto.TidalSearchResponse;
 import com.immomio.tidal.music.service.ArtistService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -103,20 +105,57 @@ public class ArtistController {
     }
 
     /**
-     * Endpoint to create an artist with a TIDAL external ID for testing.
-     * Users can manually create artists and then sync their albums.
-     * Supports both GET (for browser testing) and POST.
+     * Creates an artist with a TIDAL external ID using GET (for browser testing).
      *
      * @param name the artist name
      * @param externalId the TIDAL external ID
      * @return the created artist DTO
      */
     @GetMapping("/tidal")
-    @PostMapping("/tidal")
-    public ArtistDto createArtistWithTidalId(
+    public ArtistDto createArtistWithTidalIdGet(
             @RequestParam String name,
             @RequestParam String externalId) {
+        return createArtistWithTidalIdInternal(name, externalId);
+    }
+
+    /**
+     * Creates an artist with a TIDAL external ID using POST (for API clients).
+     *
+     * @param name the artist name
+     * @param externalId the TIDAL external ID
+     * @return the created artist DTO
+     */
+    @PostMapping("/tidal")
+    public ArtistDto createArtistWithTidalIdPost(
+            @RequestParam String name,
+            @RequestParam String externalId) {
+        return createArtistWithTidalIdInternal(name, externalId);
+    }
+
+    /**
+     * Internal method for creating an artist with a TIDAL external ID.
+     * Users can manually create artists and then sync their albums.
+     *
+     * @param name the artist name
+     * @param externalId the TIDAL external ID
+     * @return the created artist DTO
+     */
+    private ArtistDto createArtistWithTidalIdInternal(String name, String externalId) {
         ArtistRequest request = new ArtistRequest(name, externalId);
         return artistService.create(request);
+    }
+
+    /**
+     * Searches TIDAL for artists by name.
+     *
+     * @param query the search query
+     * @return list of matching TIDAL artist responses
+     */
+    @GetMapping("/tidal/search")
+    public List<TidalArtistResponse> searchTidal(@RequestParam("q") String query) {
+        TidalSearchResponse searchResponse = artistService.searchTidal(query, 10);
+        return searchResponse.artists().data().stream()
+                .map(data -> new TidalArtistResponse(data.id(), data.attributes().name()))
+                .toList();
     }
 }

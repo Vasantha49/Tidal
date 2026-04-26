@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: music-db
+    environment:
+      POSTGRES_DB: music
+      POSTGRES_USER: music_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - music-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U music_user -d music"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Music Service Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: music-app
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/music
+      SPRING_DATASOURCE_USERNAME: music_user
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-changeme123}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_SHOW_SQL: false
+      TIDAL_CLIENT_ID: ${TIDAL_CLIENT_ID}
+      TIDAL_CLIENT_SECRET: ${TIDAL_CLIENT_SECRET}
+      TIDAL_COUNTRY_CODE: ${TIDAL_COUNTRY_CODE:-DE}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - music-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/tidal"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  postgres_data:
+
+networks:
+  music-network:
+    driver: bridge

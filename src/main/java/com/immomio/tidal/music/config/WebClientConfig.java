@@ -13,14 +13,14 @@ public class WebClientConfig {
 
     /**
      * Creates and configures a WebClient bean.
-     * Sets the base URL for TIDAL's OpenAPI.
+     * Sets the base URL for TIDAL's OpenAPI v1.
      *
      * @return configured WebClient instance
      */
     @Bean
     public WebClient webClient() {
         return WebClient.builder()
-                .baseUrl("https://openapi.tidal.com") // may vary depending on API version
+                .baseUrl("https://api.tidal.com/v1") // TIDAL API v1 base URL
                 .build();
     }
 }
