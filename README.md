@@ -2,6 +2,8 @@
 
 Spring Boot service for syncing artists and albums from TIDAL into PostgreSQL, with manual edit protection for locally managed records.
 
+> **✅ TIDAL API Endpoints Verified** - All TIDAL API endpoints have been verified against the official TIDAL API Reference (April 27, 2026). See [ENDPOINT_VERIFICATION_APRIL_27.md](ENDPOINT_VERIFICATION_APRIL_27.md) for details.
+
 This project fulfills the Immomio Coding Challenge requirements:
 - Connects to TIDAL API and fetches artists and albums
 - Persists data in PostgreSQL

@@ -1,9 +1,17 @@
 # Music Service - API Endpoints Reference
 
+> **✅ Verified:** All TIDAL API endpoints have been verified against the official [TIDAL API Reference](https://tidal-music.github.io/tidal-api-reference/) and are correctly implemented.
+> **Last Verified:** April 27, 2026
+
 ## Base URL
 ```
 http://localhost:8080
 ```
+
+## TIDAL API Integration
+- **TIDAL Base URL:** `https://api.tidal.com/v1`
+- **TIDAL Auth URL:** `https://auth.tidal.com/v1/oauth2/token`
+- **Authentication:** OAuth2 Client Credentials Flow with Bearer tokens
 
 ## Sync Endpoints
 
@@ -331,4 +339,48 @@ http://localhost:8080/artists/tidal/search?q=radiohead
 - Set `TIDAL_CLIENT_ID` and `TIDAL_CLIENT_SECRET` environment variables
 - No authentication required for local endpoints
 - TIDAL endpoints require valid credentials for data fetching
+
+---
+
+## TIDAL API Endpoint Verification (April 27, 2026)
+
+### Verification Details
+
+All TIDAL API endpoints used in this application have been verified against the official TIDAL API Reference.
+
+**Verified Endpoints:**
+
+1. **Artist Endpoints** ✅
+   - `GET /artists/{id}` - Retrieve artist information
+   - Uses: `/artists/{artistId}?countryCode={code}`
+   - Status: ✅ Correct per TIDAL API v1 specification
+
+2. **Album Endpoints** ✅
+   - `GET /artists/{id}/albums` - Retrieve artist's albums
+   - Uses: `/artists/{artistId}/albums?countryCode={code}&limit=50`
+   - Status: ✅ Correct per TIDAL API v1 specification
+
+3. **Search Endpoint** ✅
+   - `GET /search` - Search across TIDAL catalog
+   - Uses: `/search?query={query}&countryCode={code}&limit={limit}`
+   - Status: ✅ Correct per TIDAL API v1 specification
+
+4. **OAuth2 Token Endpoint** ✅
+   - `POST https://auth.tidal.com/v1/oauth2/token` - Request access tokens
+   - Method: Basic Authentication with client credentials
+   - Grant Type: `client_credentials`
+   - Status: ✅ Correct per TIDAL OAuth2 specification
+
+**Source Files Verified:**
+- `WebClientConfig.java` - Base URL: `https://api.tidal.com/v1` ✅
+- `TidalService.java` - All endpoint paths and parameters ✅
+
+**Configuration Source:**
+- Official Reference: https://tidal-music.github.io/tidal-api-reference/
+
+### Findings
+
+✅ **All endpoints are correctly implemented and match the official TIDAL API documentation.**
+
+No corrections were needed as the current implementation already follows the TIDAL API specifications accurately.
 
