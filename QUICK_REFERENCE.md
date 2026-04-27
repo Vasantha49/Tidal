@@ -1,5 +1,19 @@
 # Quick Reference - Music Service API
 
+> **✅ All TIDAL API endpoints verified against official reference - April 27, 2026**
+> See [ENDPOINT_VERIFICATION_APRIL_27.md](ENDPOINT_VERIFICATION_APRIL_27.md) for detailed verification report
+
+## ⚡ System Requirements
+
+Before starting, ensure you have:
+- **Java 21+** - `java -version`
+- **Docker** - `docker --version`
+- **Docker Compose 2.0+** - `docker compose --version`
+
+**Installation:** See SUBMISSION_GUIDE.md or GITHUB_README.md for detailed setup
+
+---
+
 ##  Quick Start
 
 ```bash
