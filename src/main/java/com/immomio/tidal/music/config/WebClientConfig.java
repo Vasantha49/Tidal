@@ -20,7 +20,7 @@ public class WebClientConfig {
     @Bean
     public WebClient webClient() {
         return WebClient.builder()
-                .baseUrl("https://openapi.tidal.com") // TIDAL API v1 base URL
+                .baseUrl("https://api.tidal.com/v1") // TIDAL API v1 base URL
                 .build();
     }
 }

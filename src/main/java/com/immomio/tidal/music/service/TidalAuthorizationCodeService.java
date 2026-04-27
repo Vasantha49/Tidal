@@ -24,7 +24,7 @@ public class TidalAuthorizationCodeService {
 
     private static final String TIDAL_AUTH_ENDPOINT = "https://login.tidal.com/authorize";
     private static final String TIDAL_TOKEN_ENDPOINT = "https://auth.tidal.com/v1/oauth2/token";
-    private static final int CODE_VERIFIER_LENGTH = 128;
+    private static final int CODE_VERIFIER_LENGTH = 64;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -125,6 +125,7 @@ public class TidalAuthorizationCodeService {
 
     // ---------------- TOKEN EXCHANGE ----------------
 
+    @SuppressWarnings("unchecked")
     public Map<String, Object> exchangeAuthorizationCodeForTokens(
             String clientId,
             String code,

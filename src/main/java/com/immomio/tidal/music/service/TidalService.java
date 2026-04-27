@@ -200,7 +200,11 @@ public class TidalService {
     public TidalSearchResponse search(String query, int limit) {
         String token = getAccessToken();
         if (token == null) {
-            return new TidalSearchResponse(new TidalSearchArtists(List.of()));
+            return new TidalSearchResponse(
+                new TidalSearchArtists(List.of()),
+                new TidalSearchAlbums(List.of()),
+                new TidalSearchTracks(List.of())
+            );
         }
         try {
             return webClient.get()
@@ -219,7 +223,11 @@ public class TidalService {
         } catch (WebClientResponseException.Unauthorized ex) {
             invalidateAccessToken();
             log.warn("TIDAL search failed for query '{}': token was rejected with HTTP 401", query);
-            return new TidalSearchResponse(new TidalSearchArtists(List.of()));
+            return new TidalSearchResponse(
+                new TidalSearchArtists(List.of()),
+                new TidalSearchAlbums(List.of()),
+                new TidalSearchTracks(List.of())
+            );
         } catch (WebClientResponseException ex) {
             log.warn(
                     "TIDAL search failed for query '{}' with HTTP {} {}",
@@ -227,7 +235,11 @@ public class TidalService {
                     ex.getStatusCode().value(),
                     ex.getStatusText()
             );
-            return new TidalSearchResponse(new TidalSearchArtists(List.of()));
+            return new TidalSearchResponse(
+                new TidalSearchArtists(List.of()),
+                new TidalSearchAlbums(List.of()),
+                new TidalSearchTracks(List.of())
+            );
         }
     }
 
@@ -342,10 +354,10 @@ public class TidalService {
 
         // Known working TIDAL artist IDs (found through testing)
         String[] knownArtistIds = {
-            "7764",   // Radiohead
-            "7763",   // The Beatles
-            "7765",   // Pink Floyd
-            "7766",   // Led Zeppelin
+            "3575680",   // Four Year Strong
+            "606",   // Michael Jackson
+            "7250145",   // Marshmello
+            "4768947",   // Heikki Kuula
             "7767",   // Queen
             "7768",   // David Bowie
             "7769",   // Nirvana

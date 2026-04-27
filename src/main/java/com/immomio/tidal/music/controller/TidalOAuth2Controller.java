@@ -1,14 +1,14 @@
 package com.immomio.tidal.music.controller;
 
 import com.immomio.tidal.music.service.TidalAuthorizationCodeService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -23,8 +23,8 @@ public class TidalOAuth2Controller {
 
     public TidalOAuth2Controller(
             TidalAuthorizationCodeService authorizationCodeService,
-            @org.springframework.beans.factory.annotation.Value("${tidal.client-id}") String clientId,
-            @org.springframework.beans.factory.annotation.Value("${tidal.oauth2.redirect-uri}") String redirectUri
+            @Value("${tidal.client-id}") String clientId,
+            @Value("${tidal.oauth2.redirect-uri}") String redirectUri
     ) {
         this.authorizationCodeService = authorizationCodeService;
         this.clientId = clientId;
@@ -51,10 +51,11 @@ public class TidalOAuth2Controller {
                 clientId, redirectUri, scopes, pkce, state
         );
 
+        log.info("Redirecting to TIDAL authorize URL with state={}", state);
         return new RedirectView(url);
     }
 
-    // ---------------- CALLBACK ----------------
+    // ---------------- CALLBACK (AUTO TOKEN EXCHANGE) ----------------
 
     @GetMapping("/callback")
     public ResponseEntity<?> callback(
@@ -82,50 +83,39 @@ public class TidalOAuth2Controller {
             ));
         }
 
-        authorizationCodeService.removeAuthorizationSession(state);
+        log.info("Authorization code received, auto‑exchanging for tokens…");
 
-        return ResponseEntity.ok(Map.of(
-                "message", "Authorization code received",
-                "code", code,
-                "state", state,
-                "next", "/oauth2/token"
-        ));
-    }
+        try {
+            var tokens = authorizationCodeService.exchangeAuthorizationCodeForTokens(
+                    session.clientId,
+                    code,
+                    session.redirectUri,
+                    session.pkceChallenge.verifier
+            );
 
-    // ---------------- TOKEN EXCHANGE ----------------
+            authorizationCodeService.removeAuthorizationSession(state);
 
-    @PostMapping("/token")
-    public ResponseEntity<?> exchangeToken(
-            @RequestParam String code,
-            @RequestParam String state
-    ) {
-        var session = authorizationCodeService.getAuthorizationSession(state);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Token exchange successful",
+                    "tokens", tokens
+            ));
 
-        if (session == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
-                    "error", "invalid_state"
+        } catch (Exception ex) {
+            log.error("Token exchange failed", ex);
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of(
+                    "error", "token_exchange_failed",
+                    "details", ex.getMessage()
             ));
         }
-
-        authorizationCodeService.removeAuthorizationSession(state);
-
-        var tokens = authorizationCodeService.exchangeAuthorizationCodeForTokens(
-                session.clientId,
-                code,
-                session.redirectUri,
-                session.pkceChallenge.verifier
-        );
-
-        return ResponseEntity.ok(tokens);
     }
 
     // ---------------- HEALTH ----------------
 
     @GetMapping("/health")
-    public ResponseEntity<?> health() {
-        return ResponseEntity.ok(Map.of(
-                "status", "UP",
-                "service", "TIDAL OAuth2"
-        ));
+    public Map<String, Object> health() {
+        return Map.of(
+                "status", "ok",
+                "service", "tidal-oauth2"
+        );
     }
 }
